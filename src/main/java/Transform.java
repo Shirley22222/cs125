@@ -217,7 +217,43 @@ public class Transform {
                 }
             }
         }
-        return rotated;
+        int width1 = rotated.length;
+        int length1 = rotated[0].length;
+        int[][] newImage1 = new int[length1][width1];
+        for (int rowIndex = 0; rowIndex < length1; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < width1; columnIndex++) {
+
+                newImage1[rowIndex][columnIndex] =
+                        rotated[columnIndex][length1 - 1 - rowIndex];
+            }
+        }
+        int[][] rotated1 = new int[width1][length1];
+        if (length1 >= width1) {
+            for (int rowIndex = 0; rowIndex < width1; rowIndex++) {
+                for (int columnIndex = 0; columnIndex < length1; columnIndex++) {
+                    int part = (length1 - width1) / 2;
+                    if (columnIndex >= part && columnIndex < part + width1) {
+                        rotated1[rowIndex][columnIndex] =
+                                newImage1[part + rowIndex][columnIndex - part];
+                    } else {
+                        rotated1[rowIndex][columnIndex] = FILL_VALUE;
+                    }
+                }
+            }
+        } else {
+            for (int rowIndex = 0; rowIndex < width; rowIndex++) {
+                for (int columnIndex = 0; columnIndex < length1; columnIndex++) {
+                    int part = (width1 - length1) / 2;
+                    if (rowIndex >= part && rowIndex < part + length1) {
+                        rotated1[rowIndex][columnIndex] =
+                                rotated[rowIndex - part][part + columnIndex];
+                    } else {
+                        rotated1[rowIndex][columnIndex] = FILL_VALUE;
+                    }
+                }
+            }
+        }
+        return rotated1;
     }
 
     /*
@@ -237,7 +273,15 @@ public class Transform {
                 flipped[rowIndex][columnIndex] = originalImage[rowIndex][length - 1 - columnIndex];
             }
         }
-        return flipped;
+        int width1 = flipped.length;
+        int length1 = flipped[0].length;
+        int[][] flipped1 = new int[width1][length1];
+        for (int rowIndex = 0; rowIndex < width1; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < length1; columnIndex++) {
+                flipped1[rowIndex][columnIndex] = flipped[width1 - 1 - rowIndex][columnIndex];
+            }
+        }
+        return flipped1;
     }
 
     /*
@@ -290,6 +334,11 @@ public class Transform {
      * max number.
      */
     public static final int MAX = 255;
+
+    /**
+     * take average.
+     */
+    public static final int AVEG3 = 3;
     /**
      * Add red to the image.
      * <p>
@@ -659,7 +708,7 @@ public class Transform {
     public static int[][] greenScreen(final int[][] originalImage) {
         int width = originalImage.length;
         int length = originalImage[0].length;
-        int[][] changed = new int[width][length];
+        int[][] shifted = new int[width][length];
         for (int rowIndex = 0; rowIndex < width; rowIndex++) {
             for (int columnIndex = 0; columnIndex < length; columnIndex++) {
                 int element = originalImage[rowIndex][columnIndex];
@@ -667,14 +716,15 @@ public class Transform {
                 int blue = ((element) >> SHIFT_2) & MASK;
                 int green = ((element) >> SHIFT_3) & MASK;
                 int red = element & MASK;
-                if (red == 0 && blue == 0 && green == MAX && alpha == MAX) {
-                    changed[rowIndex][columnIndex] = FILL_VALUE;
-                } else {
-                    changed[rowIndex][columnIndex] = element;
-                }
+                int average = (red + blue + green) / AVEG3;
+                    blue = average;
+                    green = average;
+                    red = average;
+                int newElement = (alpha << SHIFT_1) + (blue << SHIFT_2) + (green << SHIFT_3) + red;
+                shifted[rowIndex][columnIndex] = newElement;
             }
         }
-        return changed;
+        return shifted;
     }
 
     /**
@@ -696,7 +746,50 @@ public class Transform {
         int[][] shifted = new int[width][length];
         for (int rowIndex = 0; rowIndex < width; rowIndex++) {
             for (int columnIndex = 0; columnIndex < length; columnIndex++) {
-                shifted[rowIndex][columnIndex] = 0x00000000;
+                int element1 = originalImage[rowIndex][columnIndex];
+                int alpha1 = ((element1) >> SHIFT_1) & MASK;
+                int blue1 = ((element1) >> SHIFT_2) & MASK;
+                int green1 = ((element1) >> SHIFT_3) & MASK;
+                int red1 = element1 & MASK;
+                if (length - 1 - columnIndex == 0) {
+                    shifted[rowIndex][columnIndex] = originalImage[rowIndex][columnIndex];
+                } else if (length - 1 - columnIndex == 1) {
+                    int element2 = originalImage[rowIndex][columnIndex];
+                    int alpha2 = ((element2) >> SHIFT_1) & MASK;
+                    int blue2 = ((element2) >> SHIFT_2) & MASK;
+                    int green2 = ((element2) >> SHIFT_3) & MASK;
+                    int red2 = element2 & MASK;
+                    int alpha = (alpha1 + alpha2) / 2;
+                    int blue = (blue1 + blue2) / 2;
+                    int red = (red1 + red2) / 2;
+                    int green = (green1 + green2) / 2;
+                    int newElement = (alpha << SHIFT_1)
+                            + (blue << SHIFT_2) + (green << SHIFT_3) + red;
+                    shifted[rowIndex][columnIndex - 1] = newElement;
+                    shifted[rowIndex][columnIndex] = newElement;
+                } else {
+                    columnIndex = columnIndex + 1;
+                    int element2 = originalImage[rowIndex][columnIndex];
+                    int alpha2 = ((element2) >> SHIFT_1) & MASK;
+                    int blue2 = ((element2) >> SHIFT_2) & MASK;
+                    int green2 = ((element2) >> SHIFT_3) & MASK;
+                    int red2 = element2 & MASK;
+                    columnIndex = columnIndex + 1;
+                    int element3 = originalImage[rowIndex][columnIndex];
+                    int alpha3 = ((element3) >> SHIFT_1) & MASK;
+                    int blue3 = ((element3) >> SHIFT_2) & MASK;
+                    int green3 = ((element3) >> SHIFT_3) & MASK;
+                    int red3 = element3 & MASK;
+                    int alpha = (alpha1 + alpha2 + alpha3) / AVEG3;
+                    int blue = (blue1 + blue2 + blue3) / AVEG3;
+                    int red = (red1 + red2 + red3) / AVEG3;
+                    int green = (green1 + green2 + green3) / AVEG3;
+                    int newElement = (alpha << SHIFT_1)
+                            + (blue << SHIFT_2) + (green << SHIFT_3) + red;
+                    shifted[rowIndex][columnIndex - 2] = newElement;
+                    shifted[rowIndex][columnIndex - 1] = newElement;
+                    shifted[rowIndex][columnIndex] = newElement;
+                }
             }
         }
         return shifted;
